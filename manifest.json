@@ -1,0 +1,8 @@
+{
+    "name": "${modName}",
+    "entry": "${modFile}",
+    "version": "0.0.1",
+    "type": "native",
+    "author": "FeixiangTMC",
+    "platform": "${modPlatform}"
+}
