@@ -22,7 +22,7 @@ private:
     ll::mod::NativeMod&        mSelf;
     ll::event::ListenerPtr mCommandRegisterListener;
     ll::event::ListenerPtr mDieListener;
-    ll::event::ListenerPtr mDisconnectListener;
+    ll::event::ListenerPtr mExitLevelListener;
 };
 
 } // namespace Stipuleroo

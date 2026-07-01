@@ -542,10 +542,12 @@ fabric.properties
 
 # XMake
 /.xmake/
+/.cache/
 /build/
+/bin/
 /CMakeLists.txt
 
 
 # Project specific ignores
 /.idea/
-/bin/
+/.claude/

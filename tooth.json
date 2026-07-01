@@ -1,53 +1,19 @@
 {
   "format_version": 3,
   "format_uuid": "289f771f-2c9a-4d73-9f3f-8492495a924d",
-  "tooth": "github.com/LiteLDev/levilamina-mod-template",
+  "tooth": "github.com/FeixiangTMC/Stipuleroo",
   "version": "0.0.1",
   "info": {
     "name": "Stipuleroo",
-    "description": "Stipuleroo - A LeviLamina mod",
+    "description": "Minecraft 基岩版客户端功能模组 - 灵魂出窍旁观模式 & 自动切换工具",
     "author": "FeixiangTMC",
     "tags": [
       "platform:levilamina",
-      "type:mod"
-    ],
-    "avatar_url": "https://example.com/Stipuleroo/avatar.png"
+      "type:mod",
+      "type:client"
+    ]
   },
   "variants": [
-    {
-      "label": "",
-      "platform": "win-x64",
-      "dependencies": {
-        "github.com/LiteLDev/LeviLamina": "1.8.*"
-      },
-      "assets": [
-        {
-          "type": "zip",
-          "urls": [
-            "https://{{tooth}}/releases/download/v{{version}}/levilamina-mod-template-server-windows-x64.zip"
-          ],
-          "placements": [
-            {
-              "type": "dir",
-              "src": "Stipuleroo/",
-              "dest": "plugins/Stipuleroo/"
-            }
-          ]
-        }
-      ],
-      "preserve_files": [],
-      "remove_files": [],
-      "scripts": {
-        "pre_install": [],
-        "install": [],
-        "post_install": [],
-        "pre_pack": [],
-        "post_pack": [],
-        "pre_uninstall": [],
-        "uninstall": [],
-        "post_uninstall": []
-      }
-    },
     {
       "label": "client",
       "platform": "win-x64",
@@ -58,7 +24,7 @@
         {
           "type": "zip",
           "urls": [
-            "https://{{tooth}}/releases/download/v{{version}}/levilamina-mod-template-client-windows-x64.zip"
+            "https://{{tooth}}/releases/download/v{{version}}/Stipuleroo-windows-x64.zip"
           ],
           "placements": [
             {
