@@ -11,6 +11,7 @@
 #include "mc/network/packet/PlayerActionPacket.h"
 #include "mc/network/packet/PlayerActionType.h"
 #include "mc/network/packet/PlayerAuthInputPacket.h"
+#include "mc/network/packet/AnimatePacket.h"
 #include "mc/network/packet/PlayerHotbarPacket.h"
 #include "mc/entity/components/PlayerBlockActions.h"
 #include "mc/entity/components/PlayerBlockActionData.h"
@@ -35,6 +36,9 @@ namespace Stipuleroo {
 //  搜索快捷栏中最优工具 (参照 CoralFans searchBestToolInInv)
 // ============================================================
 static int searchBestToolInHotbar(Player* player, BlockPos const& pos) {
+    // 创造模式秒破方块，无需切工具
+    if (player->getPlayerGameType() == GameType::Creative) return -1;
+
     auto& blockSrc = player->getDimensionBlockSourceConst();
     auto& block    = blockSrc.getBlock(pos);
     auto& inv      = player->getInventory();
@@ -73,11 +77,50 @@ static void switchToBestTool(Player* player, BlockPos const& pos) {
     }
 }
 
+// ============================================================
+//  搜索快捷栏中最优武器 (参照 CoralFans searchBestToolInInv weapon=true)
+// ============================================================
+static int searchBestWeaponInHotbar(Player* player) {
+    auto& inv = player->getInventory();
+
+    int   bestSlot   = -1;
+    short bestDamage = 1; // 空手基准伤害
+
+    for (int slot = 0; slot < 9; ++slot) {
+        auto& stack = inv.getItem(slot);
+        if (stack.isNull()) continue;
+
+        short damage = stack.getItem()->getAttackDamage();
+        // 跳过耐久即将耗尽的武器
+        short maxDamage = stack.getMaxDamage();
+        short curDamage = stack.getDamageValue();
+        if (maxDamage > 0 && (maxDamage - curDamage) <= 1) continue;
+
+        if (damage > bestDamage) {
+            bestDamage = damage;
+            bestSlot   = slot;
+        }
+    }
+
+    return bestSlot;
+}
+
+// ============================================================
+//  切换到最优武器
+// ============================================================
+void switchToBestWeapon(Player* player) {
+    int curSlot  = player->getSelectedItemSlot();
+    int bestSlot = searchBestWeaponInHotbar(player);
+    if (bestSlot >= 0 && bestSlot != curSlot) {
+        player->mInventory->selectSlot(bestSlot, ::ContainerID::Inventory);
+    }
+}
+
 } // namespace Stipuleroo
 
 // ============================================================
-//  Hook: LoopbackPacketSender::$send
-//  拦截 StartDestroyBlock / ContinueDestroyBlock 发包前切工具
+//  Hook 1: LoopbackPacketSender::$send
+//  拦截方块破坏发包前切工具
 // ============================================================
 
 LL_TYPE_INSTANCE_HOOK(
@@ -94,11 +137,22 @@ LL_TYPE_INSTANCE_HOOK(
     auto* lp    = client ? client->getLocalPlayer() : nullptr;
     if (!lp) return origin(packet);
 
-    auto id     = packet.getId();
+    auto id      = packet.getId();
     int  curSlot = lp->getSelectedItemSlot();
     bool switched = false;
 
-    // PlayerAction 包 (ID 36)
+    // Animate 包 (ID 44) — 仅攻击挥臂(Swing + Attack)，创造模式跳过
+    if (id == MinecraftPacketIds::Animate) {
+        auto& ap = static_cast<AnimatePacket&>(packet);
+        if (ap.mAction == AnimatePacketPayload::Action::Swing
+            && ap.mSwingSource->has_value()
+            && **ap.mSwingSource == ActorSwingSource::Attack) {
+            Stipuleroo::switchToBestWeapon(lp);
+            switched = true;
+        }
+    }
+
+    // PlayerAction 包 (ID 36) — 方块破坏
     if (id == MinecraftPacketIds::PlayerAction) {
         auto& ap = static_cast<PlayerActionPacket&>(packet);
         if (ap.mAction == PlayerActionType::StartDestroyBlock
@@ -107,7 +161,7 @@ LL_TYPE_INSTANCE_HOOK(
             switched = true;
         }
     }
-    // PlayerAuthInputPacket (ID 144)
+    // PlayerAuthInputPacket (ID 144) — 每 tick，内含批量方块动作
     else if (id == MinecraftPacketIds::PlayerAuthInputPacket) {
         auto& auth    = static_cast<PlayerAuthInputPacket&>(packet);
         auto& actions = *auth.mPlayerBlockActions->mActions;
@@ -134,6 +188,7 @@ LL_TYPE_INSTANCE_HOOK(
 
     origin(packet);
 }
+
 
 // ============================================================
 //  Hook RAII 管理 (沿用 FreeCamera.cpp 模式)

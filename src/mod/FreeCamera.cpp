@@ -44,8 +44,11 @@ void DisableFreeCamera(Player* pl) {
 
 // ============================================================
 //  ★ 核心 Hook：拦截发包
-//    1. PlayerAuthInputPacket → 服务器不知道玩家动了
-//    2. SetPlayerGameType     → 服务器不知道游戏模式变了
+//    1. PlayerAuthInputPacket  → 服务器不知道玩家动了
+//    2. SetPlayerGameType      → 服务器不知道游戏模式变了
+//    3. UpdatePlayerGameType   → 同上
+//    4. UpdateAbilitiesPacket  → 服务器不知道能力变了
+//    5. RequestAbilityPacket   → 同上
 // ============================================================
 
 LL_TYPE_INSTANCE_HOOK(
@@ -59,7 +62,10 @@ LL_TYPE_INSTANCE_HOOK(
     if (g_FreeCamEnabled) {
         auto id = packet.getId();
         if (id == MinecraftPacketIds::PlayerAuthInputPacket
-            || id == MinecraftPacketIds::SetPlayerGameType) {
+            || id == MinecraftPacketIds::SetPlayerGameType
+            || id == MinecraftPacketIds::UpdatePlayerGameType
+            || id == MinecraftPacketIds::UpdateAbilitiesPacket
+            || id == MinecraftPacketIds::RequestAbilityPacket) {
             return;
         }
     }
