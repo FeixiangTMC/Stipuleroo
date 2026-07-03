@@ -25,6 +25,9 @@ bool Entry::enable() {
     // 1. 安装 Hook
     Stipuleroo::freecameraHook(true);
     Stipuleroo::autoToolHook(true);
+    Stipuleroo::fakeSneakHook(true);
+    Stipuleroo::nightVisionHook(true);
+    Stipuleroo::autoBridgeHook(true);
 
     auto& bus = ll::event::EventBus::getInstance();
 
@@ -39,7 +42,10 @@ bool Entry::enable() {
                 g_FreeCamEnabled   = false;
                 g_FreeCamPlayer    = nullptr;
                 g_OriginalGameType = GameType::Survival;
-                g_AutoToolEnabled  = false;
+                g_AutoToolEnabled    = false;
+                g_FakeSneakEnabled   = false;
+                g_NightVisionEnabled = false;
+                g_AutoBridgeEnabled  = false;
 
                 // 注册 /fc 命令
                 auto& fcCmd = ll::command::CommandRegistrar::getInstance(true)
@@ -80,6 +86,57 @@ bool Entry::enable() {
                         return output.success("自动工具切换已禁用。");
                     }
                 });
+
+                // 注册 /fs 命令
+                auto& fsCmd = ll::command::CommandRegistrar::getInstance(true)
+                                  .getOrCreateCommand(
+                                      "fs",
+                                      "开启或关闭伪潜行。",
+                                      CommandPermissionLevel::Any
+                                  );
+
+                fsCmd.overload().execute([](CommandOrigin const& origin, CommandOutput& output) {
+                    g_FakeSneakEnabled = !g_FakeSneakEnabled;
+                    if (g_FakeSneakEnabled) {
+                        return output.success("伪潜行已启用。");
+                    } else {
+                        return output.success("伪潜行已禁用。");
+                    }
+                });
+
+                // 注册 /rv 命令
+                auto& rvCmd = ll::command::CommandRegistrar::getInstance(true)
+                                  .getOrCreateCommand(
+                                      "rv",
+                                      "开启或关闭夜视。",
+                                      CommandPermissionLevel::Any
+                                  );
+
+                rvCmd.overload().execute([](CommandOrigin const& origin, CommandOutput& output) {
+                    g_NightVisionEnabled = !g_NightVisionEnabled;
+                    if (g_NightVisionEnabled) {
+                        return output.success("夜视已启用。");
+                    } else {
+                        return output.success("夜视已禁用。");
+                    }
+                });
+
+                // 注册 /ab 命令
+                auto& abCmd = ll::command::CommandRegistrar::getInstance(true)
+                                  .getOrCreateCommand(
+                                      "ab",
+                                      "开启或关闭自动搭路。",
+                                      CommandPermissionLevel::Any
+                                  );
+
+                abCmd.overload().execute([](CommandOrigin const& origin, CommandOutput& output) {
+                    g_AutoBridgeEnabled = !g_AutoBridgeEnabled;
+                    if (g_AutoBridgeEnabled) {
+                        return output.success("自动搭路已启用。");
+                    } else {
+                        return output.success("自动搭路已禁用。");
+                    }
+                });
             }
         );
 
@@ -98,7 +155,10 @@ bool Entry::enable() {
             g_FreeCamEnabled   = false;
             g_FreeCamPlayer    = nullptr;
             g_OriginalGameType = GameType::Survival;
-            g_AutoToolEnabled  = false;
+            g_AutoToolEnabled    = false;
+            g_FakeSneakEnabled   = false;
+            g_NightVisionEnabled = false;
+            g_AutoBridgeEnabled  = false;
         }
     );
 
@@ -109,8 +169,14 @@ bool Entry::disable() {
     if (g_FreeCamEnabled) {
         Stipuleroo::DisableFreeCamera(nullptr);
     }
-    g_AutoToolEnabled = false;
+    g_AutoToolEnabled    = false;
+    g_FakeSneakEnabled   = false;
+    g_NightVisionEnabled = false;
+    g_AutoBridgeEnabled  = false;
     Stipuleroo::autoToolHook(false);
+    Stipuleroo::fakeSneakHook(false);
+    Stipuleroo::nightVisionHook(false);
+    Stipuleroo::autoBridgeHook(false);
     return true;
 }
 
@@ -118,8 +184,14 @@ bool Entry::unload() {
     if (g_FreeCamEnabled) {
         Stipuleroo::DisableFreeCamera(nullptr);
     }
-    g_AutoToolEnabled = false;
+    g_AutoToolEnabled    = false;
+    g_FakeSneakEnabled   = false;
+    g_NightVisionEnabled = false;
+    g_AutoBridgeEnabled  = false;
     Stipuleroo::autoToolHook(false);
+    Stipuleroo::fakeSneakHook(false);
+    Stipuleroo::nightVisionHook(false);
+    Stipuleroo::autoBridgeHook(false);
     auto& bus = ll::event::EventBus::getInstance();
     bus.removeListener(mCommandRegisterListener);
     bus.removeListener(mDieListener);
