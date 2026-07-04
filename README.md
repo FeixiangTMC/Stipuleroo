@@ -60,7 +60,7 @@
 
 1. 安装 [LeviLauncher](https://github.com/LiteLDev/LeviLauncher) 启动器
 2. 在 LeviLauncher 中安装 LeviLamina 客户端
-3. 将 `Stipuleroo-windows-x64.zip` 导入 LeviLauncher 启动器
+3. 将Stipuleroo-windows.zip导入 LeviLauncher 启动器
 4. 启动游戏，在聊天栏输入命令以启用功能
 
 ## 许可证
