@@ -1,12 +1,16 @@
 #include "Entry.h"
+#include "Config.h"
 #include "Global.h"
 
 #include "ll/api/command/CommandHandle.h"
 #include "ll/api/command/CommandRegistrar.h"
+#include "ll/api/service/TargetedBedrock.h"
 #include "ll/api/event/EventBus.h"
 #include "ll/api/event/client/ClientExitLevelEvent.h"
 #include "ll/api/event/client/ClientJoinLevelEvent.h"
+#include "ll/api/event/input/KeyInputEvent.h"
 #include "ll/api/event/player/PlayerDieEvent.h"
+#include "ll/api/input/KeyRegistry.h"
 #include "ll/api/mod/RegisterHelper.h"
 #include "mc/client/player/LocalPlayer.h"
 #include "mc/server/commands/CommandOutput.h"
@@ -22,6 +26,48 @@ Entry& Entry::getInstance() {
 bool Entry::load() { return true; }
 
 bool Entry::enable() {
+    // 0. 加载配置文件
+    auto configPath = mSelf.getModDir() / "config" / "config.json";
+    StipulerooConfig::get().load(configPath);
+
+    // 0.1 注册快捷键
+    {
+        auto& keyReg  = ll::input::KeyRegistry::getInstance();
+        auto  fcCode  = StipulerooConfig::get().getFreecamKeyCode();
+        auto  abCode  = StipulerooConfig::get().getAutoBridgeKeyCode();
+        if (fcCode > 0) keyReg.getOrCreateKey("Stipuleroo Freecam", {fcCode});
+        if (abCode > 0) keyReg.getOrCreateKey("Stipuleroo AutoBridge", {abCode});
+    }
+
+    // 0.2 灵魂出窍快捷键 — 和 /fc 命令平等，直接开关
+    mFreecamKeyListener = ll::event::EventBus::getInstance()
+        .emplaceListener<ll::event::input::KeyInputEvent>(
+            [](ll::event::input::KeyInputEvent& ev) {
+                if (!ev.isDown()) return;
+                if (ev.keyCode() != StipulerooConfig::get().getFreecamKeyCode()) return;
+                auto ci = ll::service::getClientInstance();
+                if (!ci) return;
+                auto* lp = ci->getLocalPlayer();
+                if (!lp) return;
+                if (!g_FreeCamEnabled) {
+                    Stipuleroo::EnableFreeCamera(lp);
+                } else {
+                    Stipuleroo::DisableFreeCamera(lp);
+                }
+            }
+        );
+
+    // 0.3 自动搭路快捷键 — 准备状态下按配置键开关
+    mAutoBridgeKeyListener = ll::event::EventBus::getInstance()
+        .emplaceListener<ll::event::input::KeyInputEvent>(
+            [](ll::event::input::KeyInputEvent& ev) {
+                if (!ev.isDown()) return;
+                if (!g_AutoBridgePending) return;
+                if (ev.keyCode() != StipulerooConfig::get().getAutoBridgeKeyCode()) return;
+                g_AutoBridgeEnabled = !g_AutoBridgeEnabled;
+            }
+        );
+
     // 1. 安装 Hook
     Stipuleroo::freecameraHook(true);
     Stipuleroo::autoToolHook(true);
@@ -46,12 +92,13 @@ bool Entry::enable() {
                 g_FakeSneakEnabled   = false;
                 g_NightVisionEnabled = false;
                 g_AutoBridgeEnabled  = false;
+                g_AutoBridgePending = false;
 
                 // 注册 /fc 命令
                 auto& fcCmd = ll::command::CommandRegistrar::getInstance(true)
                                   .getOrCreateCommand(
                                       "fc",
-                                      "开启或关闭灵魂出窍模式。",
+                                      fmt::format("开启或关闭灵魂出窍模式（快捷键: {}）。", StipulerooConfig::get().freecamKey),
                                       CommandPermissionLevel::Any
                                   );
 
@@ -87,12 +134,12 @@ bool Entry::enable() {
                     }
                 });
 
-                // 注册 /fs 命令
+                // 注册 /fs 命令 (隐藏)
                 auto& fsCmd = ll::command::CommandRegistrar::getInstance(true)
                                   .getOrCreateCommand(
                                       "fs",
                                       "开启或关闭伪潜行。",
-                                      CommandPermissionLevel::Any
+                                      CommandPermissionLevel::Internal
                                   );
 
                 fsCmd.overload().execute([](CommandOrigin const& origin, CommandOutput& output) {
@@ -104,12 +151,12 @@ bool Entry::enable() {
                     }
                 });
 
-                // 注册 /rv 命令
+                // 注册 /rv 命令 (隐藏)
                 auto& rvCmd = ll::command::CommandRegistrar::getInstance(true)
                                   .getOrCreateCommand(
                                       "rv",
                                       "开启或关闭夜视。",
-                                      CommandPermissionLevel::Any
+                                      CommandPermissionLevel::Internal
                                   );
 
                 rvCmd.overload().execute([](CommandOrigin const& origin, CommandOutput& output) {
@@ -125,16 +172,18 @@ bool Entry::enable() {
                 auto& abCmd = ll::command::CommandRegistrar::getInstance(true)
                                   .getOrCreateCommand(
                                       "ab",
-                                      "开启或关闭自动搭路。",
+                                      fmt::format("进入自动搭路准备模式（快捷键: {}）。", StipulerooConfig::get().autoBridgeKey),
                                       CommandPermissionLevel::Any
                                   );
 
                 abCmd.overload().execute([](CommandOrigin const& origin, CommandOutput& output) {
-                    g_AutoBridgeEnabled = !g_AutoBridgeEnabled;
-                    if (g_AutoBridgeEnabled) {
-                        return output.success("自动搭路已启用。");
+                    g_AutoBridgePending = !g_AutoBridgePending;
+                    if (g_AutoBridgePending) {
+                        auto& key = StipulerooConfig::get().autoBridgeKey;
+                        return output.success("{}键准备就绪，按{}键开关自动搭路。", key, key);
                     } else {
-                        return output.success("自动搭路已禁用。");
+                        g_AutoBridgeEnabled = false;
+                        return output.success("自动搭路准备已取消。");
                     }
                 });
             }
@@ -173,6 +222,7 @@ bool Entry::disable() {
     g_FakeSneakEnabled   = false;
     g_NightVisionEnabled = false;
     g_AutoBridgeEnabled  = false;
+    g_AutoBridgePending = false;
     Stipuleroo::autoToolHook(false);
     Stipuleroo::fakeSneakHook(false);
     Stipuleroo::nightVisionHook(false);
@@ -188,6 +238,7 @@ bool Entry::unload() {
     g_FakeSneakEnabled   = false;
     g_NightVisionEnabled = false;
     g_AutoBridgeEnabled  = false;
+    g_AutoBridgePending = false;
     Stipuleroo::autoToolHook(false);
     Stipuleroo::fakeSneakHook(false);
     Stipuleroo::nightVisionHook(false);
@@ -196,6 +247,8 @@ bool Entry::unload() {
     bus.removeListener(mCommandRegisterListener);
     bus.removeListener(mDieListener);
     bus.removeListener(mExitLevelListener);
+    bus.removeListener(mAutoBridgeKeyListener);
+    bus.removeListener(mFreecamKeyListener);
     Stipuleroo::freecameraHook(false);
     return true;
 }

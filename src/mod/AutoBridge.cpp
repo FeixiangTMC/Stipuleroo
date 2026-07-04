@@ -17,6 +17,7 @@
 #include "mc/world/actor/player/Player.h"
 
 bool g_AutoBridgeEnabled = false;
+bool g_AutoBridgePending = false; // /ab 后 B 键准备就绪
 
 LL_TYPE_INSTANCE_HOOK(
     AutoBridgePacketHook,

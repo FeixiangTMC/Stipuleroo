@@ -2,10 +2,10 @@
   "format_version": 3,
   "format_uuid": "289f771f-2c9a-4d73-9f3f-8492495a924d",
   "tooth": "github.com/FeixiangTMC/Stipuleroo",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "info": {
     "name": "Stipuleroo",
-    "description": "Minecraft 基岩版客户端功能模组 - 灵魂出窍旁观模式 & 自动切换工具",
+    "description": "Minecraft 基岩版客户端多功能辅助模组",
     "author": "FeixiangTMC",
     "tags": [
       "platform:levilamina",
@@ -24,7 +24,7 @@
         {
           "type": "zip",
           "urls": [
-            "https://{{tooth}}/releases/download/v{{version}}/Stipuleroo-windows-x64.zip"
+            "https://{{tooth}}/releases/download/v{{version}}/Stipuleroo-Windows-v{{version}}-26.10.zip"
           ],
           "placements": [
             {

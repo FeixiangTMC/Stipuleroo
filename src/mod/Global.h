@@ -20,6 +20,7 @@ extern bool g_NightVisionEnabled;
 
 // 自动搭路状态
 extern bool g_AutoBridgeEnabled;
+extern bool g_AutoBridgePending; // /ab 后等待 B 键确认
 
 namespace Stipuleroo {
 extern void EnableFreeCamera(Player* pl);
