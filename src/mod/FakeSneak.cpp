@@ -9,7 +9,7 @@
 bool g_FakeSneakEnabled = false;
 
 // ============================================================
-//  仿子沐伪潜行: 判断 onGround 有值 → mSneaking=true, return true
+//  伪潜行: 判断 onGround 有值 → mSneaking=true, return true
 // ============================================================
 LL_STATIC_HOOK(
     FakeSneakEdgeHook,
