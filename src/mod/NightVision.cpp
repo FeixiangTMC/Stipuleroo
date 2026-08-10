@@ -1,42 +1,84 @@
 #include "Global.h"
 
 #include <ll/api/memory/Hook.h>
+#include <mc/client/options/Options.h>
+#include <mc/client/renderer/ptexture/BaseLightTextureImageBuilder.h>
 #include <mc/deps/minecraft_renderer/framebuilder/BgfxFrameBuilder.h>
-#include <mc/deps/minecraft_renderer/framebuilder/RenderFlameBillboardDescription.h>
 #include <mc/deps/minecraft_renderer/framebuilder/BlitFlipbookTextureDescription.h>
-#include <mc/deps/minecraft_renderer/framebuilder/RenderParticleDescription.h>
 #include <mc/deps/minecraft_renderer/framebuilder/FadeToBlackDescription.h>
 #include <mc/deps/minecraft_renderer/framebuilder/FullscreenEffectDescription.h>
 #include <mc/deps/minecraft_renderer/framebuilder/RenderCameraAimAssistHighlightDescription.h>
+#include <mc/deps/minecraft_renderer/framebuilder/RenderFlameBillboardDescription.h>
+#include <mc/deps/minecraft_renderer/framebuilder/RenderParticleDescription.h>
 #include <mc/deps/minecraft_renderer/framebuilder/RenderShadowDescription.h>
 #include <mc/deps/minecraft_renderer/framebuilder/gamecomponents/mfc/EditorHighlightConfiguration.h>
-using namespace ll::memory_literals; // 提供 _sig 签名字面量
+#include <mc/world/actor/player/Player.h>
+using namespace ll::memory_literals;
 
 bool g_NightVisionEnabled = false;
 
 // ============================================================
-//  SDK 中 RenderPlayerVisionDescription 为空壳
-//  以下字段根据二进制逆向手动声明 (未公开)
+//  BaseLightData — SDK 未公开，手动声明
+// ============================================================
+class BaseLightData {
+public:
+    mce::Color     mSunriseColor;
+    float          mGamma;
+    float          mSkyDarken;
+    DimensionType  mDimensionType;
+    float          mDarkenWorldAmount;
+    float          mPreviousDarkenWorldAmount;
+    bool           mNightvisionActive;
+    float          mNightvisionScale;
+    bool           mUnderwaterVision;
+    float          mUnderwaterScale;
+    int            mSkyFlashTime;
+    float          mDarknessFactor;
+    float          mDarknessFactorPreviousFrame;
+};
+
+// ============================================================
+//  RenderPlayerVisionDescription — SDK 未公开，手动声明
 // ============================================================
 namespace mce::framebuilder {
 
 struct RenderPlayerVisionDescription {
-    bool  mNightVisionEnabled;     // 夜视开关
-    float mNightVisionScale;       // 夜视亮度倍率 (1=正常)
-    float mMobEffectFogLevel;      // 雾浓度 (1=完全去雾)
-    float mSkyAmbientContribution; // 天空环境光贡献 (1=最亮)
-    float mDarknessScale;          // 黑暗效果强度 (0=完全移除)
+    bool  mNightVisionEnabled;
+    float mNightVisionScale;
+    float mMobEffectFogLevel;
+    float mSkyAmbientContribution;
+    float mDarknessScale;
 };
 
 } // namespace mce::framebuilder
 
 // ============================================================
-//  Hook: BgfxFrameBuilder::_insert
-//  _insert 在 SDK 中未公开，通过字节签名 (_sig) 定位
-//  const_cast: 渲染管线传入的是 const&，仅修改视觉字段 (安全)
+//  Hook 1: 光照数据 — 简约 / 花式图形模式
+//  强制 mNightvisionActive/mNightvisionScale，让光照系统按夜视渲染
+// ============================================================
+LL_AUTO_STATIC_HOOK(
+    LightDataHook,
+    HookPriority::Normal,
+    ll::memory::unchecked(&BaseLightTextureImageBuilder::_updateDarknessLightData),
+    void,
+    BaseLightData& baseLightData,
+    Player const&  player,
+    Options const& options
+) {
+    if (g_NightVisionEnabled) {
+        baseLightData.mNightvisionActive = true;
+        baseLightData.mNightvisionScale  = 1.0f;
+    }
+    origin(baseLightData, player, options);
+}
+
+// ============================================================
+//  Hook 2: FrameBuilder::_insert — 灵动视效图形模式
+//  灵动视效每帧固定产生一份 RenderPlayerVisionDescription（mNightVisionEnabled=false）
+//  在此直接修改路过描述，无需主动插入
 // ============================================================
 LL_AUTO_TYPE_INSTANCE_HOOK(
-    NightVisionHook,
+    FrameBuilderInsertHook,
     HookPriority::Normal,
     mce::framebuilder::BgfxFrameBuilder,
     "48 81 EC C8 00 00 00 44 8B 05 32 19 3C 03"_sig,
@@ -61,15 +103,32 @@ LL_AUTO_TYPE_INSTANCE_HOOK(
             auto& vi = const_cast<mce::framebuilder::RenderPlayerVisionDescription&>(
                 vision->get());
             vi.mNightVisionEnabled     = true;
-            vi.mNightVisionScale       = 1;
-            vi.mMobEffectFogLevel      = 1;
-            vi.mSkyAmbientContribution = 1;
-            vi.mDarknessScale          = 0;
+            vi.mNightVisionScale       = 1.0f;
+            vi.mMobEffectFogLevel      = 1.0f;
+            vi.mSkyAmbientContribution = 1.0f;
+            vi.mDarknessScale          = 0.0f;
         }
     }
     return origin(std::move(description));
 }
 
+// ============================================================
+//  Hook RAII
+// ============================================================
 namespace Stipuleroo {
-void nightVisionHook(bool enable) { (void)enable; }
+
+struct NightVisionImpl {
+    ll::memory::HookRegistrar<LightDataHook, FrameBuilderInsertHook> r;
+};
+
+std::unique_ptr<NightVisionImpl> nvImpl;
+
+void nightVisionHook(bool enable) {
+    if (enable) {
+        if (!nvImpl) nvImpl = std::make_unique<NightVisionImpl>();
+    } else {
+        nvImpl.reset();
+    }
+}
+
 } // namespace Stipuleroo

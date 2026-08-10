@@ -3,6 +3,8 @@
 #include "ll/api/memory/Hook.h"
 #include "ll/api/service/TargetedBedrock.h"
 
+#include "mc/world/level/GameType.h"
+
 #include "mc/client/game/ClientInstance.h"
 #include "mc/client/player/LocalPlayer.h"
 #include "mc/network/LoopbackPacketSender.h"
@@ -18,6 +20,10 @@
 #include "mc/world/actor/player/Player.h"
 #include "mc/world/item/Item.h"
 #include "mc/world/item/ItemStack.h"
+#include "mc/world/item/ItemStackBase.h"
+#include "mc/world/item/enchanting/ItemEnchants.h"
+#include "mc/world/item/enchanting/EnchantmentInstance.h"
+#include "mc/world/item/enchanting/Enchant.h"
 #include "mc/world/level/block/Block.h"
 #include "mc/world/level/BlockPos.h"
 #include "mc/world/level/BlockSource.h"
@@ -30,11 +36,26 @@ bool g_AutoToolEnabled = false;
 
 namespace Stipuleroo {
 
+// 计算武器附魔伤害加成（锋利等）
+// 基岩版 1.21+ 锋利公式: +1.25 × 等级
+static float getEnchantAttackBonus(ItemStackBase const& stack) {
+    auto enchants = stack.constructItemEnchantsFromUserData();
+    float bonus = 0.0f;
+    for (auto& inst : enchants.getAllEnchants()) {
+        if (inst.mEnchantType == Enchant::Type::Sharpness) {
+            bonus += 1.25f * (float)inst.mLevel;
+        }
+        // Smite / BaneOfArthropods 针对性太强，不纳入通用比较
+    }
+    return bonus;
+}
+
 static int searchBestToolInHotbar(Player* player, BlockPos const& pos) {
     if (player->getPlayerGameType() == GameType::Creative) return -1;
     auto& blockSrc = player->getDimensionBlockSourceConst();
     auto& block    = blockSrc.getBlock(pos);
     auto& inv      = player->getInventory();
+    int   curSlot  = player->getSelectedItemSlot();
     int   bestSlot  = -1;
     float bestSpeed = 1.0f;
     for (int slot = 0; slot < 9; ++slot) {
@@ -44,25 +65,40 @@ static int searchBestToolInHotbar(Player* player, BlockPos const& pos) {
         short maxDmg = stack.getMaxDamage();
         short curDmg = stack.getDamageValue();
         if (maxDmg > 0 && (maxDmg - curDmg) <= 1) continue;
-        if (speed > bestSpeed) { bestSpeed = speed; bestSlot = slot; }
+        if (speed > bestSpeed) {
+            bestSpeed = speed;
+            bestSlot  = slot;
+        } else if (speed == bestSpeed && slot == curSlot && bestSlot >= 0) {
+            // 相同挖掘速度 → 当前槽优先（不切）
+            bestSlot = curSlot;
+        }
     }
-    return bestSlot;
+    return (bestSlot >= 0 && bestSlot != curSlot) ? bestSlot : -1;
 }
 
 static int searchBestWeaponInHotbar(Player* player) {
-    auto& inv = player->getInventory();
+    auto& inv     = player->getInventory();
+    int   curSlot = player->getSelectedItemSlot();
     int   bestSlot   = -1;
-    short bestDamage = 1;
+    float bestDamage = 1.0f;
     for (int slot = 0; slot < 9; ++slot) {
         auto& stack = inv.getItem(slot);
         if (stack.isNull()) continue;
-        short damage = stack.getItem()->getAttackDamage();
+        // 基础攻击力 + 锋利附魔加成
+        float totalDamage = (float)stack.getItem()->getAttackDamage()
+                          + getEnchantAttackBonus(stack);
         short maxDmg = stack.getMaxDamage();
         short curDmg = stack.getDamageValue();
         if (maxDmg > 0 && (maxDmg - curDmg) <= 1) continue;
-        if (damage > bestDamage) { bestDamage = damage; bestSlot = slot; }
+        if (totalDamage > bestDamage) {
+            bestDamage = totalDamage;
+            bestSlot   = slot;
+        } else if (totalDamage == bestDamage && slot == curSlot && bestSlot >= 0) {
+            // 相同伤害 → 当前槽优先（不切）
+            bestSlot = curSlot;
+        }
     }
-    return bestSlot;
+    return (bestSlot >= 0 && bestSlot != curSlot) ? bestSlot : -1;
 }
 
 } // namespace Stipuleroo
@@ -96,12 +132,10 @@ LL_TYPE_INSTANCE_HOOK(
         if (ap.mAction == AnimatePacketPayload::Action::Swing
             && ap.mSwingSource->has_value()
             && **ap.mSwingSource == ActorSwingSource::Attack
-            && lp->traceRay(5.5f, true, false).mType == ::HitResultType::Entity) {  // 准心对准实体
+            && lp->traceRay(5.5f, true, false).mType == ::HitResultType::Entity) {
             int best = Stipuleroo::searchBestWeaponInHotbar(lp);
-            int cur  = lp->getSelectedItemSlot();
-            if (best >= 0 && best != cur) {
+            if (best >= 0) {
                 lp->mInventory->selectSlot(best, ::ContainerID::Inventory);
-                // 直接通过 LoopbackPacketSender 发 PlayerHotbarPacket
                 PlayerHotbarPacket hotbarPkt;
                 hotbarPkt.mSelectedSlot     = (uint)best;
                 hotbarPkt.mShouldSelectSlot = true;
@@ -117,7 +151,6 @@ LL_TYPE_INSTANCE_HOOK(
         auto& actions = *auth.mPlayerBlockActions->mActions;
         BlockPos targetPos;
 
-        // 取第一个挖掘动作的位置
         bool foundAction = false;
         for (auto& act : actions) {
             if (act.mPlayerActionType == PlayerActionType::StartDestroyBlock
@@ -130,8 +163,7 @@ LL_TYPE_INSTANCE_HOOK(
 
         if (foundAction) {
             int best = Stipuleroo::searchBestToolInHotbar(lp, targetPos);
-            int cur  = lp->getSelectedItemSlot();
-            if (best >= 0 && best != cur) {
+            if (best >= 0) {
                 lp->mInventory->selectSlot(best, ::ContainerID::Inventory);
 
                 PlayerHotbarPacket hotbarPkt;

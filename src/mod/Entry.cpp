@@ -142,8 +142,6 @@ bool Entry::enable() {
                     Stipuleroo::DisableFreeCamera(nullptr);
                 }
                 g_FreeCamEnabled    = false;
-                g_FreeCamPlayer     = nullptr;
-                g_OriginalGameType  = GameType::Survival;
                 g_AutoToolEnabled   = false;
                 g_FakeSneakEnabled  = false;
                 g_NightVisionEnabled = false;
@@ -221,7 +219,7 @@ bool Entry::enable() {
                     });
                 }
 
-                // 注册 /rv 命令 (隐藏)
+                // 注册 /rv 命令
                 {
                     auto& rvKey = StipulerooConfig::get().nightVisionKey;
                     auto& rvCmd = ll::command::CommandRegistrar::getInstance(true)
@@ -230,7 +228,7 @@ bool Entry::enable() {
                                           rvKey.empty()
                                               ? "开启或关闭夜视。"
                                               : fmt::format("开启或关闭夜视（快捷键: {}）。", rvKey),
-                                          CommandPermissionLevel::Internal
+                                          CommandPermissionLevel::Any
                                       );
 
                     rvCmd.overload().execute([](CommandOrigin const& origin, CommandOutput& output) {
@@ -276,12 +274,12 @@ bool Entry::enable() {
         }
     );
 
-    // 4. 退出世界 → 重置状态 (不调用 DisableFreeCamera，避免操作已销毁的 Player)
+    // 4. 退出世界 → 重置状态（先恢复镜头再清标记，防止残留状态卡住下个世界）
     mExitLevelListener = bus.emplaceListener<ll::event::client::ClientExitLevelEvent>(
         [](ll::event::client::ClientExitLevelEvent&) {
-            g_FreeCamEnabled    = false;
-            g_FreeCamPlayer     = nullptr;
-            g_OriginalGameType  = GameType::Survival;
+            if (g_FreeCamEnabled) {
+                Stipuleroo::DisableFreeCamera(nullptr);
+            }
             g_AutoToolEnabled   = false;
             g_FakeSneakEnabled  = false;
             g_NightVisionEnabled = false;
