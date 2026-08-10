@@ -24,6 +24,15 @@ void StipulerooConfig::load(std::filesystem::path const& path) {
         if (j.contains("freecamKey") && j["freecamKey"].is_string()) {
             freecamKey = j["freecamKey"].get<std::string>();
         }
+        if (j.contains("autoToolKey") && j["autoToolKey"].is_string()) {
+            autoToolKey = j["autoToolKey"].get<std::string>();
+        }
+        if (j.contains("fakeSneakKey") && j["fakeSneakKey"].is_string()) {
+            fakeSneakKey = j["fakeSneakKey"].get<std::string>();
+        }
+        if (j.contains("nightVisionKey") && j["nightVisionKey"].is_string()) {
+            nightVisionKey = j["nightVisionKey"].get<std::string>();
+        }
         if (j.contains("autoBridgeKey") && j["autoBridgeKey"].is_string()) {
             autoBridgeKey = j["autoBridgeKey"].get<std::string>();
         }
@@ -32,9 +41,12 @@ void StipulerooConfig::load(std::filesystem::path const& path) {
 
 void StipulerooConfig::save(std::filesystem::path const& path) const {
     nlohmann::ordered_json j;
-    j["freecamKey"]    = freecamKey;
-    j["autoBridgeKey"] = autoBridgeKey;
-    j["_comment"]      = "键名支持: A~Z, 0~9, F1~F12, Space, Tab, Enter, Shift, Ctrl, Alt, LShift, RShift, LCtrl, RCtrl, LAlt, RAlt";
+    j["freecamKey"]     = freecamKey;
+    j["autoToolKey"]    = autoToolKey;
+    j["fakeSneakKey"]   = fakeSneakKey;
+    j["nightVisionKey"] = nightVisionKey;
+    j["autoBridgeKey"]  = autoBridgeKey;
+    j["_comment"]       = "键名支持: A~Z, 0~9, F1~F12, Space, Tab, Enter, Shift, Ctrl, Alt, LShift, RShift, LCtrl, RCtrl, LAlt, RAlt\n默认全部为空（无快捷键），需要快捷键时自行填入键名即可";
     ll::file_utils::writeFile(path, j.dump(4));
 }
 
@@ -64,5 +76,8 @@ static int KeyNameToCode(std::string const& name) {
     return it != kKeyNameMap.end() ? it->second : -1;
 }
 
-int StipulerooConfig::getAutoBridgeKeyCode() const { return KeyNameToCode(autoBridgeKey); }
-int StipulerooConfig::getFreecamKeyCode() const    { return KeyNameToCode(freecamKey); }
+int StipulerooConfig::getFreecamKeyCode() const     { return KeyNameToCode(freecamKey); }
+int StipulerooConfig::getAutoToolKeyCode() const     { return KeyNameToCode(autoToolKey); }
+int StipulerooConfig::getFakeSneakKeyCode() const    { return KeyNameToCode(fakeSneakKey); }
+int StipulerooConfig::getNightVisionKeyCode() const  { return KeyNameToCode(nightVisionKey); }
+int StipulerooConfig::getAutoBridgeKeyCode() const   { return KeyNameToCode(autoBridgeKey); }

@@ -23,8 +23,11 @@ private:
     ll::event::ListenerPtr mCommandRegisterListener;
     ll::event::ListenerPtr mDieListener;
     ll::event::ListenerPtr mExitLevelListener;
-    ll::event::ListenerPtr mAutoBridgeKeyListener;
     ll::event::ListenerPtr mFreecamKeyListener;
+    ll::event::ListenerPtr mAutoToolKeyListener;
+    ll::event::ListenerPtr mFakeSneakKeyListener;
+    ll::event::ListenerPtr mNightVisionKeyListener;
+    ll::event::ListenerPtr mAutoBridgeKeyListener;
 };
 
 } // namespace Stipuleroo
