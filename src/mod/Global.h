@@ -1,13 +1,9 @@
 #pragma once
 
-#include "mc/world/level/GameType.h"
-
 class Player;
 
 // 灵魂出窍状态标记
-extern bool     g_FreeCamEnabled;
-extern GameType g_OriginalGameType;
-extern Player*  g_FreeCamPlayer;
+extern bool g_FreeCamEnabled;
 
 // 自动工具状态
 extern bool g_AutoToolEnabled;
