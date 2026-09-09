@@ -1,65 +1,69 @@
 # Stipuleroo
 
-托叶工具，Minecraft 基岩版客户端多功能模组。纯客户端工作，可进入任意服务器使用。
+English | [中文](README.zh.md)
 
-## 功能
+**Stipuleroo** is a multi-purpose **client-side** mod for Minecraft Bedrock Edition. Everything runs purely on the client, so it can be used on any server.
 
-所有功能均支持**命令**和**快捷键**两种开关方式。快捷键默认全部为空，需要在配置文件中自行设置。
+## Features
 
-### 灵魂出窍 `/fc`
+All features can be toggled both by **commands** and by **hotkeys**. Hotkeys are all unbound by default — configure them in the config file.
 
-输入 `/fc` 或按快捷键切换灵魂出窍模式：
+> In-game chat feedback is currently in Chinese. The tables below show the messages you will see and what they mean.
 
-| 提示 | 含义 |
+### Free Camera (Out-of-Body) `/fc`
+
+Toggle free camera mode by typing `/fc` or pressing your hotkey:
+
+| Message | Meaning |
 |---|---|
-| `灵魂出窍模式已启用。` | 已开启，自由飞行 |
-| `灵魂出窍模式已禁用。` | 已关闭，回到身体 |
+| `灵魂出窍模式已启用。` | Free camera enabled — free flight |
+| `灵魂出窍模式已禁用。` | Free camera disabled — back in your body |
 
-- 基于 Debug Camera 实现
-- 自由飞行时玩家本体冻结在原地，不会移动/破坏方块
-- 死亡、退出世界时自动关闭
-- 纯客户端，服务端无感知
+- Implemented on top of the Debug Camera
+- While free-flying, your body stays frozen in place — it will not move or break blocks
+- Automatically disabled on death or when leaving the world
+- Purely client-side — the server has no way of knowing
 
-### 自动工具 `/at`
+### Auto Tool `/at`
 
-输入 `/at` 或按快捷键切换自动工具模式：
+Toggle auto tool by typing `/at` or pressing your hotkey:
 
-| 提示 | 含义 |
+| Message | Meaning |
 |---|---|
-| `自动工具切换已启用。` | 已开启 |
-| `自动工具切换已禁用。` | 已关闭 |
+| `自动工具切换已启用。` | Auto tool switching enabled |
+| `自动工具切换已禁用。` | Auto tool switching disabled |
 
-- 挖掘方块时自动切换到快捷栏中挖掘速度最快的工具
-- 攻击实体时自动切换到伤害最高的武器（计算锋利附魔加成）
-- 退出世界时自动关闭
+- Automatically switches to the fastest tool in your hotbar when mining blocks
+- Automatically switches to the highest-damage weapon when attacking entities (accounts for the Sharpness enchantment)
+- Automatically disabled when leaving the world
 
-### 自动搭路 `/ab`
+### Auto Bridge `/ab`
 
-输入 `/ab` 或按快捷键切换自动搭路：
+Toggle auto bridge by typing `/ab` or pressing your hotkey:
 
-| 提示 | 含义 |
+| Message | Meaning |
 |---|---|
-| `自动搭路已启用。` | 已开启 |
-| `自动搭路已禁用。` | 已关闭 |
+| `自动搭路已启用。` | Auto bridge enabled |
+| `自动搭路已禁用。` | Auto bridge disabled |
 
-- 开启后自动在脚下和前方放置方块
-- 退出世界时自动关闭
+- When enabled, automatically places blocks beneath and in front of you
+- Automatically disabled when leaving the world
 
-### 夜视 `/rv`
+### Night Vision `/rv`
 
-输入 `/rv` 或按快捷键切换夜视：
+Toggle night vision by typing `/rv` or pressing your hotkey:
 
-| 提示 | 含义 |
+| Message | Meaning |
 |---|---|
-| `夜视已启用。` | 已开启 |
-| `夜视已禁用。` | 已关闭 |
+| `夜视已启用。` | Night vision enabled |
+| `夜视已禁用。` | Night vision disabled |
 
-- 永久夜视效果，无需药水
-- 退出世界时自动关闭
+- Permanent night vision effect — no potions needed
+- Automatically disabled when leaving the world
 
-## 配置
+## Configuration
 
-模组首次加载后会在 `config/config.json` 生成配置文件：
+On first load, the mod generates its config file at `config/config.json`:
 
 ```json
 {
@@ -72,24 +76,24 @@
 }
 ```
 
-| 配置项 | 对应功能 | 默认值 |
+| Setting | Feature | Default |
 |---|---|---|
-| `freecamKey` | 灵魂出窍 `/fc` | 空（无快捷键） |
-| `autoToolKey` | 自动工具 `/at` | 空 |
-| `fakeSneakKey` | 伪潜行 `/fs` | 空 |
-| `nightVisionKey` | 夜视 `/rv` | 空 |
-| `autoBridgeKey` | 自动搭路 `/ab` | 空 |
+| `freecamKey` | Free Camera `/fc` | empty (no hotkey) |
+| `autoToolKey` | Auto Tool `/at` | empty |
+| `fakeSneakKey` | Fake Sneak `/fs` | empty |
+| `nightVisionKey` | Night Vision `/rv` | empty |
+| `autoBridgeKey` | Auto Bridge `/ab` | empty |
 
-支持的键名：`A`~`Z`、`0`~`9`、`F1`~`F12`、`Space`、`Tab`、`Enter`、`Shift`、`Ctrl`、`Alt` 及左右变体（`LShift`/`RShift` 等）。
+Supported key names: `A`–`Z`, `0`–`9`, `F1`–`F12`, `Space`, `Tab`, `Enter`, `Shift`, `Ctrl`, `Alt` and their left/right variants (`LShift`/`RShift`, `LCtrl`/`RCtrl`, `LAlt`/`RAlt`).
 
-## 安装
+## Installation
 
-1. 安装 [LeviLauncher](https://github.com/LiteLDev/LeviLauncher) 启动器
-2. 在 LeviLauncher 中安装 LeviLamina 客户端
-3. 将 `Stipuleroo-windows.zip` 导入 LeviLauncher 启动器
-4. 启动游戏，在聊天栏输入命令以启用功能
-5. 初次启动后会生成配置文件mod/Stipuleroo/config/config.json，在里面配置你的快捷键
+1. Install the [LeviLauncher](https://github.com/LiteLDev/LeviLauncher) launcher
+2. Install a LeviLamina client through LeviLauncher
+3. Download the mod zip (e.g. `Stipuleroo-Windows-v0.0.3-26.10.zip`) from the [Releases page](https://github.com/FeixiangTMC/Stipuleroo/releases) and import it into LeviLauncher
+4. Launch the game and type the commands in chat to enable features
+5. On first launch, a config file is generated at `mod/Stipuleroo/config/config.json` — configure your hotkeys there
 
-## 许可证
+## License
 
 GPL-3.0 © FeixiangTMC
