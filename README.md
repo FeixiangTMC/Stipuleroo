@@ -90,7 +90,7 @@ Supported key names: `A`–`Z`, `0`–`9`, `F1`–`F12`, `Space`, `Tab`, `Enter`
 
 1. Install the [LeviLauncher](https://github.com/LiteLDev/LeviLauncher) launcher
 2. Install a LeviLamina client through LeviLauncher
-3. Download the mod zip (e.g. `Stipuleroo-Windows-v0.0.3-26.10.zip`) from the [Releases page](https://github.com/FeixiangTMC/Stipuleroo/releases) and import it into LeviLauncher
+3. Download the mod zip (e.g. `Stipuleroo-windows.zip`) from the [Releases page](https://github.com/FeixiangTMC/Stipuleroo/releases) and import it into LeviLauncher
 4. Launch the game and type the commands in chat to enable features
 5. On first launch, a config file is generated at `mod/Stipuleroo/config/config.json` — configure your hotkeys there
 
