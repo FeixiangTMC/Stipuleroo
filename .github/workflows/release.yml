@@ -25,14 +25,31 @@ jobs:
           restore-keys: |
             xmake-
 
-      # 26.40 客户端由 clang/LLVM 构建，模组必须用 clang-cl 编译（xmake.lua 里 set_toolchains("clang-cl")）
-      - name: Ensure clang-cl is available
+      # 26.40 的 LeviLamina 依赖需要 clang >= 21：runner 自带的 clang 20 编译 LL 源码会失败
+      #（src/ll/api/base/Alias.h → std::destroy_at<...> → error: invalid application of 'sizeof'
+      #  to an incomplete type 'CommandRegistry'）。这里用官方 LLVM 23.1.1（与本地验证过的工具链一致）。
+      - name: Cache LLVM 23
+        id: llvm
+        uses: actions/cache@v5
+        with:
+          path: llvm
+          key: llvm-23.1.1-x86_64-pc-windows-msvc
+
+      - name: Download LLVM 23
+        if: steps.llvm.outputs.cache-hit != 'true'
+        shell: pwsh
         run: |
-          if (-not (Get-Command clang-cl -ErrorAction SilentlyContinue)) {
-            $dir = "$env:ProgramFiles\LLVM\bin"
-            if (Test-Path "$dir\clang-cl.exe") { $dir | Out-File -FilePath $env:GITHUB_PATH -Append -Encoding utf8 }
-          }
-          clang-cl --version
+          $url = "https://github.com/llvm/llvm-project/releases/download/llvmorg-23.1.1/clang+llvm-23.1.1-x86_64-pc-windows-msvc.tar.xz"
+          curl.exe -sSL -o llvm.tar.xz $url
+          New-Item -ItemType Directory -Force llvm | Out-Null
+          tar -xf llvm.tar.xz -C llvm --strip-components=1
+          Remove-Item llvm.tar.xz
+
+      - name: Put LLVM 23 (clang-cl) on PATH
+        shell: pwsh
+        run: |
+          "$PWD\llvm\bin" | Out-File -FilePath $env:GITHUB_PATH -Append -Encoding utf8
+          & "$PWD\llvm\bin\clang-cl.exe" --version
 
       - run: |
           xmake repo -u
