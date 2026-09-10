@@ -3,6 +3,7 @@
 #include <cmath>
 
 #include "ll/api/memory/Hook.h"
+#include "ll/api/mod/NativeMod.h"
 #include "ll/api/service/TargetedBedrock.h"
 
 #include "mc/client/game/ClientInstance.h"
@@ -12,6 +13,7 @@
 #include "mc/network/Packet.h"
 #include "mc/network/packet/PlayerAuthInputPacket.h"
 #include "mc/world/item/ItemStack.h"
+#include "mc/world/level/block/Block.h"
 #include "mc/world/level/BlockSource.h"
 #include "mc/world/gamemode/GameMode.h"
 #include "mc/world/actor/player/Player.h"
@@ -53,8 +55,9 @@ LL_TYPE_INSTANCE_HOOK(
 
     auto& bs = lp->getDimensionBlockSourceConst();
 
-    if (bs.isEmptyBlock(self))  lp->mGameMode->buildBlock(self,  1, false);
-    if (bs.isEmptyBlock(front)) lp->mGameMode->buildBlock(front, 1, false);
+    // 26.32+: BlockSource::isEmptyBlock 已移除 → getBlock().isAir()
+    if (bs.getBlock(self).isAir())  lp->mGameMode->buildBlock(self,  1, false);
+    if (bs.getBlock(front).isAir()) lp->mGameMode->buildBlock(front, 1, false);
 
     origin(packet);
 }
@@ -69,7 +72,10 @@ std::unique_ptr<AutoBridgeImpl> impl;
 
 void autoBridgeHook(bool enable) {
     if (enable) {
-        if (!impl) impl = std::make_unique<AutoBridgeImpl>();
+        if (!impl) {
+            impl = std::make_unique<AutoBridgeImpl>();
+            SROO_DEBUG("AutoBridge: hook installed (26.40)");
+        }
     } else {
         impl.reset();
     }

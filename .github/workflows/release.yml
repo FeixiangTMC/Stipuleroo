@@ -25,6 +25,15 @@ jobs:
           restore-keys: |
             xmake-
 
+      # 26.40 客户端由 clang/LLVM 构建，模组必须用 clang-cl 编译（xmake.lua 里 set_toolchains("clang-cl")）
+      - name: Ensure clang-cl is available
+        run: |
+          if (-not (Get-Command clang-cl -ErrorAction SilentlyContinue)) {
+            $dir = "$env:ProgramFiles\LLVM\bin"
+            if (Test-Path "$dir\clang-cl.exe") { $dir | Out-File -FilePath $env:GITHUB_PATH -Append -Encoding utf8 }
+          }
+          clang-cl --version
+
       - run: |
           xmake repo -u
 
@@ -33,6 +42,11 @@ jobs:
 
       - run: |
           xmake -w -y
+
+      # 发布包里只需要可供玩家安装的两个文件；调试符号（.pdb，约 15MB）不进发布包
+      - name: Drop debug symbols
+        run: |
+          Remove-Item "bin/Stipuleroo/*.pdb" -Force -ErrorAction SilentlyContinue
 
       - uses: actions/upload-artifact@v7
         with:
@@ -74,14 +88,15 @@ jobs:
           name: ${{ github.event.repository.name }}-${{ github.sha }}-${{ matrix.target_type }}-windows-x64
           path: artifact
 
-      - run: |
+      # zip 内的资源名必须与 tooth.json 里声明的 URL 完全一致：
+      #   Stipuleroo-Windows-v<version>-26.40.zip（tag 形如 v0.0.4）
+      - name: Package release zip
+        run: |
           cp CHANGELOG.md LICENSE README.md artifact/
-
-      - run: |
-          zip -r ../${{ github.event.repository.name }}-${{ matrix.target_type }}-windows-x64.zip *
-        working-directory: artifact
+          cd artifact
+          zip -r "../Stipuleroo-Windows-${{ github.event.release.tag_name }}-26.40.zip" *
 
       - uses: softprops/action-gh-release@v3
         with:
           files: |
-            ${{ github.event.repository.name }}-${{ matrix.target_type }}-windows-x64.zip
+            Stipuleroo-Windows-${{ github.event.release.tag_name }}-26.40.zip

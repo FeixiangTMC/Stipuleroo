@@ -1,115 +1,174 @@
 #include "Global.h"
 
 #include <ll/api/memory/Hook.h>
-#include <mc/client/options/Options.h>
+#include <ll/api/mod/NativeMod.h>
+#include <ll/api/utils/SystemUtils.h>
+#include <mc/client/renderer/ptexture/BaseLightData.h>
 #include <mc/client/renderer/ptexture/BaseLightTextureImageBuilder.h>
-#include <mc/deps/minecraft_renderer/framebuilder/BgfxFrameBuilder.h>
 #include <mc/deps/minecraft_renderer/framebuilder/BlitFlipbookTextureDescription.h>
+#include <mc/deps/minecraft_renderer/framebuilder/EditorHighlightConfiguration.h>
 #include <mc/deps/minecraft_renderer/framebuilder/FadeToBlackDescription.h>
+#include <mc/deps/minecraft_renderer/framebuilder/FrameBuilder.h>
 #include <mc/deps/minecraft_renderer/framebuilder/FullscreenEffectDescription.h>
 #include <mc/deps/minecraft_renderer/framebuilder/RenderCameraAimAssistHighlightDescription.h>
 #include <mc/deps/minecraft_renderer/framebuilder/RenderFlameBillboardDescription.h>
 #include <mc/deps/minecraft_renderer/framebuilder/RenderParticleDescription.h>
+#include <mc/deps/minecraft_renderer/framebuilder/RenderPlayerVisionDescription.h>
 #include <mc/deps/minecraft_renderer/framebuilder/RenderShadowDescription.h>
-#include <mc/deps/minecraft_renderer/framebuilder/gamecomponents/mfc/EditorHighlightConfiguration.h>
-#include <mc/world/actor/player/Player.h>
-using namespace ll::memory_literals;
+
+#include <memory>
+
+class IClientInstance;
+class ScreenContext;
 
 bool g_NightVisionEnabled = false;
 
 // ============================================================
-//  BaseLightData — SDK 未公开，手动声明
+//  Hook 1: 光照数据 — 简约 / 高品质图形模式
 // ============================================================
-class BaseLightData {
-public:
-    mce::Color     mSunriseColor;
-    float          mGamma;
-    float          mSkyDarken;
-    DimensionType  mDimensionType;
-    float          mDarkenWorldAmount;
-    float          mPreviousDarkenWorldAmount;
-    bool           mNightvisionActive;
-    float          mNightvisionScale;
-    bool           mUnderwaterVision;
-    float          mUnderwaterScale;
-    int            mSkyFlashTime;
-    float          mDarknessFactor;
-    float          mDarknessFactorPreviousFrame;
-};
-
-// ============================================================
-//  RenderPlayerVisionDescription — SDK 未公开，手动声明
-// ============================================================
-namespace mce::framebuilder {
-
-struct RenderPlayerVisionDescription {
-    bool  mNightVisionEnabled;
-    float mNightVisionScale;
-    float mMobEffectFogLevel;
-    float mSkyAmbientContribution;
-    float mDarknessScale;
-};
-
-} // namespace mce::framebuilder
-
-// ============================================================
-//  Hook 1: 光照数据 — 简约 / 花式图形模式
-//  强制 mNightvisionActive/mNightvisionScale，让光照系统按夜视渲染
-// ============================================================
-LL_AUTO_STATIC_HOOK(
-    LightDataHook,
-    HookPriority::Normal,
-    ll::memory::unchecked(&BaseLightTextureImageBuilder::_updateDarknessLightData),
-    void,
-    BaseLightData& baseLightData,
-    Player const&  player,
-    Options const& options
+// 26.10 挂点: BaseLightTextureImageBuilder::_updateDarknessLightData(...)
+//   → 26.32 起该方法与 Options 类型从游戏/头文件移除。
+// 26.40 替代: createBaseLightTextureData(IClientInstance*, BaseLightData const&)
+//   (virtual, MCAPI $-thunk 可用) → 拦截返回值强制夜视标志。
+LL_TYPE_INSTANCE_HOOK(
+    CreateLightDataHook,
+    ll::memory::HookPriority::Normal,
+    BaseLightTextureImageBuilder,
+    &BaseLightTextureImageBuilder::$createBaseLightTextureData,
+    std::unique_ptr<BaseLightData>,
+    IClientInstance* client,
+    BaseLightData const& currentData
 ) {
-    if (g_NightVisionEnabled) {
-        baseLightData.mNightvisionActive = true;
-        baseLightData.mNightvisionScale  = 1.0f;
+    auto result = origin(client, currentData);
+    if (g_NightVisionEnabled && result) {
+        result->mNightvisionActive = true;
+        result->mNightvisionScale  = 1.0f;
     }
-    origin(baseLightData, player, options);
+    return result;
 }
 
 // ============================================================
-//  Hook 2: FrameBuilder::_insert — 灵动视效图形模式
-//  灵动视效每帧固定产生一份 RenderPlayerVisionDescription（mNightVisionEnabled=false）
-//  在此直接修改路过描述，无需主动插入
+//  Hook 2: 灵动视效 (Deferred) — 每帧注入 RenderPlayerVisionDescription
 // ============================================================
-LL_AUTO_TYPE_INSTANCE_HOOK(
-    FrameBuilderInsertHook,
-    HookPriority::Normal,
-    mce::framebuilder::BgfxFrameBuilder,
-    "48 81 EC C8 00 00 00 44 8B 05 32 19 3C 03"_sig,
-    void,
-    std::variant<
-        std::reference_wrapper<mce::framebuilder::RenderFlameBillboardDescription const>,
-        std::reference_wrapper<mce::framebuilder::BlitFlipbookTextureDescription const>,
-        std::reference_wrapper<mce::framebuilder::RenderParticleDescription const>,
-        std::reference_wrapper<mce::framebuilder::RenderPlayerVisionDescription const>,
-        std::reference_wrapper<mce::framebuilder::RenderShadowDescription const>,
-        std::reference_wrapper<mce::framebuilder::FadeToBlackDescription const>,
-        std::reference_wrapper<mce::framebuilder::RenderCameraAimAssistHighlightDescription const>,
-        std::reference_wrapper<mce::framebuilder::FullscreenEffectDescription const>,
-        std::reference_wrapper<MFC::EditorHighlightConfiguration const>> description
-) {
-    if (g_NightVisionEnabled) {
-        if (auto* vision =
-                std::get_if<std::reference_wrapper<
-                    mce::framebuilder::RenderPlayerVisionDescription const>>(
-                    &description);
-            vision) {
-            auto& vi = const_cast<mce::framebuilder::RenderPlayerVisionDescription&>(
-                vision->get());
-            vi.mNightVisionEnabled     = true;
-            vi.mNightVisionScale       = 1.0f;
-            vi.mMobEffectFogLevel      = 1.0f;
-            vi.mSkyAmbientContribution = 1.0f;
-            vi.mDarknessScale          = 0.0f;
-        }
+// 参考: iInfiniteNightVision — ServiceLocator<FrameBuilder>::mService 定位 +
+//   frameBuilder->_insert(RenderPlayerVisionDescription{夜视全开})
+// 26.40.05 定位结论 (IDA): mService 存储于 imagebase+0x11A6AD58
+//   (0x151A6AD58, 函数内断言串 NonOwnerPointer<FrameBuilder>::access() 佐证);
+//   另在 +0x10 (0x151A6AD68) 有直接 FrameBuilder* 缓存(qword), 用作 vtable 调用候选。
+namespace {
+
+// 镜像范围 (用于校验 vtable/指针归属)
+uintptr_t gImageBase{};
+size_t    gImageSize{};
+
+bool ptrInImage(uintptr_t p) { return p >= gImageBase && p < gImageBase + gImageSize; }
+
+mce::framebuilder::FrameBuilder* gFrameBuilder{};
+void*                            gControlBlock{};
+uintptr_t                        gFn1Target{};
+bool                             gFbInitTried{};
+bool                             gFbValid{};
+
+void resolveFrameBuilderService() {
+    auto& logger = ll::mod::NativeMod::current()->getLogger();
+    if (gFbInitTried) return;
+    gFbInitTried = true;
+
+    auto range = ll::sys_utils::getImageRange();
+    if (range.empty()) {
+        logger.warn("FBService: getImageRange failed");
+        return;
     }
-    return origin(std::move(description));
+    gImageBase = reinterpret_cast<uintptr_t>(range.data());
+    gImageSize = range.size_bytes();
+    SROO_DEBUG("FBService: image base={:x} size={:x}", gImageBase, gImageSize);
+
+    // 原版每帧 vision-描述插入函数 (IDA: 0x143224870; 调用方不消费其返回值)
+    gFn1Target = gImageBase + 0x3224870;
+    SROO_DEBUG("FBService: fn1 vision-insert target = {:x}", gFn1Target);
+
+    auto service = gImageBase + 0x11A6AD58;
+    auto ctl     = *reinterpret_cast<void**>(service);
+    auto fb1     = *reinterpret_cast<void**>(service + 8);
+    auto fb2     = *reinterpret_cast<void**>(service + 0x10); // qword_151A6AD68
+    SROO_DEBUG(
+        "FBService: ctl={:x} fb1={:x} fb2={:x}",
+        reinterpret_cast<uintptr_t>(ctl),
+        reinterpret_cast<uintptr_t>(fb1),
+        reinterpret_cast<uintptr_t>(fb2)
+    );
+
+    auto pickValid = [&](void* fb) -> mce::framebuilder::FrameBuilder* {
+        if (!fb) return nullptr;
+        auto vp = *reinterpret_cast<void**>(fb);
+        if (!ptrInImage(reinterpret_cast<uintptr_t>(vp))) return nullptr; // vtable 须在镜像内
+        return static_cast<mce::framebuilder::FrameBuilder*>(fb);
+    };
+
+    if (auto* fb = pickValid(fb2); fb) {
+        gFrameBuilder = fb;
+        gControlBlock = ctl;
+    } else if (auto* fb = pickValid(fb1); fb) {
+        gFrameBuilder = fb;
+        gControlBlock = ctl;
+    }
+    if (!gFrameBuilder) {
+        logger.warn("FBService: no valid FrameBuilder candidate (vtable check failed)");
+        return;
+    }
+    if (!gControlBlock || *(unsigned char*)gControlBlock != 1) {
+        logger.warn("FBService: control block invalid (mIsValid!=1)");
+        gFrameBuilder = nullptr;
+        return;
+    }
+    gFbValid = true;
+    SROO_DEBUG(
+        "FBService: VALID frameBuilder={:x} vtable={:x}",
+        reinterpret_cast<uintptr_t>(gFrameBuilder),
+        reinterpret_cast<uintptr_t>(*reinterpret_cast<void**>(gFrameBuilder))
+    );
+}
+
+bool gInjectDisabledByCrash{};
+
+} // namespace
+
+uintptr_t gFn1HookId{}; // 占位（见 hook 定义处）
+//  原版每帧 vision-insert 函数替换 hook
+// ============================================================
+// IDA 26.40.05: 0x143224870 (file VA), runtime = imageBase + 0x3224870
+// 调用点(0x1431adb39/0x1431ae0b3)均不消费返回值 → 替换安全
+LL_STATIC_HOOK(
+    Fn1VisionHook,
+    ll::memory::HookPriority::Normal,
+    ll::memory::unchecked(gFn1Target),
+    void,
+    __int64 obj
+) {
+    if (g_NightVisionEnabled && gFbValid && !gInjectDisabledByCrash) {
+        try {
+            mce::framebuilder::RenderPlayerVisionDescription desc;
+            desc.mNightVisionEnabled     = true;
+            desc.mNightVisionScale       = 1.0f;
+            desc.mMobEffectFogLevel      = 1.0f;
+            desc.mSkyAmbientContribution = 1.0f;
+            desc.mDarknessScale          = 0.0f;
+            gFrameBuilder->_insert(desc);
+        } catch (...) {
+            gInjectDisabledByCrash = true;
+            SROO_ERROR("NightVision fn1 hook: insert crashed, disabled");
+            return;
+        }
+        static int replaceCount = 0;
+        if ((++replaceCount) <= 3 || (replaceCount % 600) == 0) {
+            SROO_DEBUG(
+                "NightVision fn1 hook: replaced vanilla insert #{} (nv on)",
+                replaceCount
+            );
+        }
+        return; // 不调用 origin: 整体替换原版插入
+    }
+    origin(obj);
 }
 
 // ============================================================
@@ -118,14 +177,20 @@ LL_AUTO_TYPE_INSTANCE_HOOK(
 namespace Stipuleroo {
 
 struct NightVisionImpl {
-    ll::memory::HookRegistrar<LightDataHook, FrameBuilderInsertHook> r;
+    ll::memory::HookRegistrar<CreateLightDataHook, Fn1VisionHook> r;
 };
 
 std::unique_ptr<NightVisionImpl> nvImpl;
 
 void nightVisionHook(bool enable) {
     if (enable) {
-        if (!nvImpl) nvImpl = std::make_unique<NightVisionImpl>();
+        resolveFrameBuilderService();
+        if (!nvImpl) {
+            nvImpl = std::make_unique<NightVisionImpl>();
+            SROO_DEBUG(
+                "NightVision: light-data + deferred hooks installed (26.40)"
+            );
+        }
     } else {
         nvImpl.reset();
     }

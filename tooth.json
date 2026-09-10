@@ -2,7 +2,7 @@
   "format_version": 3,
   "format_uuid": "289f771f-2c9a-4d73-9f3f-8492495a924d",
   "tooth": "github.com/FeixiangTMC/Stipuleroo",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "info": {
     "name": "Stipuleroo",
     "description": "Minecraft 基岩版客户端多功能辅助模组",
@@ -18,13 +18,13 @@
       "label": "client",
       "platform": "win-x64",
       "dependencies": {
-        "github.com/LiteLDev/LeviLamina#client": "26.10.*"
+        "github.com/LiteLDev/LeviLamina#client": "26.40.*"
       },
       "assets": [
         {
           "type": "zip",
           "urls": [
-            "https://{{tooth}}/releases/download/v{{version}}/Stipuleroo-Windows-v{{version}}-26.10.zip"
+            "https://{{tooth}}/releases/download/v{{version}}/Stipuleroo-Windows-v{{version}}-26.40.zip"
           ],
           "placements": [
             {

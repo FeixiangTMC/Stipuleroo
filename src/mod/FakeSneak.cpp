@@ -1,60 +1,35 @@
 #include "Global.h"
 
-#include "ll/api/memory/Hook.h"
+#include <ll/api/mod/NativeMod.h>
 
-#include "mc/deps/vanilla_components/MoveRequestComponent.h"
-#include "mc/deps/vanilla_components/OnGroundFlagComponent.h"
-#include "mc/entity/systems/sneak_movement_system/SneakMovementSystem.h"
+// ============================================================
+//  伪潜行 — 暂停适配（26.32 起游戏移除挂点，用户决定先不做）
+// ============================================================
+// 26.10 挂点: SneakMovementSystem::storeSneakStateAndReturnDoSneakMovement
+//   (mc/entity/systems/sneak_movement_system/SneakMovementSystem.h)
+// 26.32+:     该方法已从游戏移除（只剩 create()/getMaxCollisionVolume()），
+//   若日后恢复本功能，候选挂点是:
+//   SneakTriggerSystem::doIntentTick(StrictEntityContext const&,
+//       MoveInputComponent const&, ActorGameTypeComponent const&,
+//       PlayerInputRequestComponent const&, ActorDataFlagComponent const&,
+//       PlayerActionComponent&, Optional<WasInWaterFlagComponent const>,
+//       Optional<PassengerComponent const>,
+//       OptionalGlobal<BaseGameVersionComponent const>, ExternalDataInterface const&)
+//   需要 IDA/符号确认其写入 PlayerActionComponent 的潜行意图字段,
+//   且验证该路径能让服务端感知潜行。
+// 当前实现: /fs 命令与快捷键保留（开关标记 g_FakeSneakEnabled 照常翻转），
+//   但不挂任何 Hook、不产生实际效果。
 
 bool g_FakeSneakEnabled = false;
 
-// ============================================================
-//  伪潜行: 判断 onGround 有值 → mSneaking=true, return true
-// ============================================================
-LL_STATIC_HOOK(
-    FakeSneakEdgeHook,
-    HookPriority::Normal,
-    &SneakMovementSystem::storeSneakStateAndReturnDoSneakMovement,
-    bool,
-    ActorDataFlagComponent const&         actorData,
-    Optional<MoveInputComponent const>    moveInputComponent,
-    Optional<OnGroundFlagComponent const> onGround,
-    MoveRequestComponent&                 moveRequest
-) {
-    if (g_FakeSneakEnabled) {
-        if (onGround.mEnTTStorage) {
-            using NonConstSt = entt::basic_storage<
-                OnGroundFlagComponent, EntityId,
-                std::allocator<OnGroundFlagComponent>, void>;
-            if (reinterpret_cast<NonConstSt*>(
-                    const_cast<void*>(
-                        static_cast<const void*>(onGround.mEnTTStorage)))
-                    ->contains(onGround.mEntity)) {
-                moveRequest.mSneaking = true;
-            }
-        }
-        return true;
-    }
-    return origin(actorData, moveInputComponent, onGround, moveRequest);
-}
-
-// ============================================================
-//  Hook RAII
-// ============================================================
 namespace Stipuleroo {
 
-struct FakeSneakImpl {
-    ll::memory::HookRegistrar<FakeSneakEdgeHook> r;
-};
-
-std::unique_ptr<FakeSneakImpl> impl;
-
 void fakeSneakHook(bool enable) {
+    // no-op: 26.32+ 无可用挂点, 等待重新实现(见上注释)
     if (enable) {
-        if (!impl) impl = std::make_unique<FakeSneakImpl>();
-    } else {
-        impl.reset();
+        SROO_DEBUG("FakeSneak: suspended (no hook, by design)");
     }
+    (void)enable;
 }
 
 } // namespace Stipuleroo

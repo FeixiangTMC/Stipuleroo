@@ -1,6 +1,7 @@
 #include "Global.h"
 
 #include "ll/api/memory/Hook.h"
+#include "ll/api/mod/NativeMod.h"
 #include "ll/api/service/TargetedBedrock.h"
 
 #include "mc/world/level/GameType.h"
@@ -61,8 +62,9 @@ static int searchBestToolInHotbar(Player* player, BlockPos const& pos) {
     for (int slot = 0; slot < 9; ++slot) {
         auto& stack = inv.getItem(slot);
         if (stack.isNull()) continue;
-        float speed = stack.getItem()->getDestroySpeed(stack, block);
-        short maxDmg = stack.getMaxDamage();
+        // 26.32+: ItemStackBase::getItem()/getMaxDamage() 移除, mItem 为公有 WeakPtr<Item>
+        float speed  = stack.mItem->getDestroySpeed(stack, block);
+        short maxDmg = stack.mItem->getMaxDamage();
         short curDmg = stack.getDamageValue();
         if (maxDmg > 0 && (maxDmg - curDmg) <= 1) continue;
         if (speed > bestSpeed) {
@@ -84,10 +86,10 @@ static int searchBestWeaponInHotbar(Player* player) {
     for (int slot = 0; slot < 9; ++slot) {
         auto& stack = inv.getItem(slot);
         if (stack.isNull()) continue;
-        // 基础攻击力 + 锋利附魔加成
-        float totalDamage = (float)stack.getItem()->getAttackDamage()
+        // 26.32+: getItem()/getMaxDamage() 移除 → mItem (公有 WeakPtr<Item>)
+        float totalDamage = (float)stack.mItem->getAttackDamage()
                           + getEnchantAttackBonus(stack);
-        short maxDmg = stack.getMaxDamage();
+        short maxDmg = stack.mItem->getMaxDamage();
         short curDmg = stack.getDamageValue();
         if (maxDmg > 0 && (maxDmg - curDmg) <= 1) continue;
         if (totalDamage > bestDamage) {
@@ -191,7 +193,10 @@ std::unique_ptr<AutoToolImpl> impl;
 
 void autoToolHook(bool enable) {
     if (enable) {
-        if (!impl) impl = std::make_unique<AutoToolImpl>();
+        if (!impl) {
+            impl = std::make_unique<AutoToolImpl>();
+            SROO_DEBUG("AutoTool: hook installed (26.40)");
+        }
     } else {
         impl.reset();
     }

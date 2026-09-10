@@ -551,3 +551,10 @@ fabric.properties
 # Project specific ignores
 /.idea/
 /.claude/
+
+# 本地工作记录（含本机路径与逆向分析过程，不公开）
+/docs/
+/shiny-inventing-taco.md
+
+# 本地打包好的发布 zip（正式发布走 GitHub Releases，不进版本库）
+/Stipuleroo-*.zip

@@ -4,6 +4,12 @@
 
 托叶工具，Minecraft 基岩版客户端多功能模组。纯客户端工作，可进入任意服务器使用。
 
+| | |
+|---|---|
+| 游戏版本 | Minecraft 基岩版 **26.40**（Windows） |
+| 加载器 | [LeviLamina](https://github.com/LiteLDev/LeviLamina) **26.40.\***（client） |
+| 下载 | [Releases](https://github.com/FeixiangTMC/Stipuleroo/releases) |
+
 ## 功能
 
 所有功能均支持**命令**和**快捷键**两种开关方式。快捷键默认全部为空，需要在配置文件中自行设置。
@@ -59,38 +65,83 @@
 - 永久夜视效果，无需药水
 - 退出世界时自动关闭
 
+### 自动鼠标操作 `/am`
+
+`/am` 会弹出模式菜单；三种模式各自也可以绑定快捷键。**三种模式互斥**：开启一个会自动关掉上一个，再选一次当前项即关闭。
+
+| 提示 | 含义 |
+|---|---|
+| `自动鼠标操作: 连续左键点击（攻击）` | 按间隔攻击准星目标 |
+| `自动鼠标操作: 连续右键点击（放置/使用）` | 按间隔放置方块 / 使用物品 |
+| `自动鼠标操作: 持续左键长按（挖掘）` | 持续挖掘准星方块 |
+| `自动鼠标操作: 已关闭` | 已关闭 |
+
+- **连续左键点击**：攻击准星目标；对着空气时空挥手臂
+- **连续右键点击**：按间隔对目标方块放置方块 / 使用物品（放置走服务端权威的 `GameMode::buildBlock`，方块会真正落地）
+- **持续左键长按（挖掘）**：在输入层伪造「鼠标左键按住」，让原版挖掘管线原样跑完 —— 破坏进度、裂纹贴图、音效、发包都与真人按住左键完全一致
+- 点击间隔可在配置文件中调整（0.05 ~ 1000 秒）
+- 打开任何界面（背包 / 聊天 / 表单）时自动暂停，并立刻松开鼠标按键
+- 退出世界、死亡时自动关闭
+
 ## 配置
 
-模组首次加载后会在 `config/config.json` 生成配置文件：
+模组首次加载后会在 `mods/Stipuleroo/config/config.json` 生成配置文件：
 
-```json
+```jsonc
+// Stipuleroo 配置（支持 // 注释；游戏内改完约 2 秒自动生效，聊天栏会提示）
+// 键名：A~Z 0~9 F1~F12 Space Tab Enter Shift Ctrl Alt（可加 L/R 前缀）；留空 "" = 不绑定
 {
-    "freecamKey": "",
-    "autoToolKey": "",
-    "fakeSneakKey": "",
-    "nightVisionKey": "",
-    "autoBridgeKey": "",
-    "_comment": "键名支持: A~Z, 0~9, F1~F12, Space, Tab, Enter, Shift, Ctrl, Alt, LShift, RShift, LCtrl, RCtrl, LAlt, RAlt\n默认全部为空（无快捷键），需要快捷键时自行填入键名即可"
+    "debugLog": false,                      // 输出诊断日志到 logs/latest.log
+    "freecamKey": "",                   // 灵魂出窍      /fc
+    "autoToolKey": "",                  // 自动工具      /at
+    "fakeSneakKey": "",                 // 伪潜行        /fs（26.32+ 无效果）
+    "nightVisionKey": "",               // 夜视          /rv
+    "autoBridgeKey": "",                // 自动搭路      /ab
+    "autoMouseLeftClickKey": "",       // 自动鼠标      /am：连续左键点击（攻击）
+    "autoMouseRightClickKey": "",      // 自动鼠标      /am：连续右键点击（放置/使用）
+    "autoMouseHoldLeftKey": "",        // 自动鼠标      /am：持续左键长按（挖掘）
+    "autoMouseLeftClickInterval": 0.20,    // 左键点击间隔（秒，0.05~1000）
+    "autoMouseRightClickInterval": 0.20    // 右键点击间隔（秒，0.05~1000）
 }
 ```
 
 | 配置项 | 对应功能 | 默认值 |
 |---|---|---|
+| `debugLog` | 是否把诊断日志写进 `logs/latest.log`（反馈问题时打开） | 正式版 `false` |
 | `freecamKey` | 灵魂出窍 `/fc` | 空（无快捷键） |
 | `autoToolKey` | 自动工具 `/at` | 空 |
-| `fakeSneakKey` | 伪潜行 `/fs` | 空 |
+| `fakeSneakKey` | 伪潜行 `/fs` —— 26.32 起游戏移除了挂点，**无实际效果** | 空 |
 | `nightVisionKey` | 夜视 `/rv` | 空 |
 | `autoBridgeKey` | 自动搭路 `/ab` | 空 |
+| `autoMouseLeftClickKey` | 自动鼠标 `/am`：连续左键点击 | 空 |
+| `autoMouseRightClickKey` | 自动鼠标 `/am`：连续右键点击 | 空 |
+| `autoMouseHoldLeftKey` | 自动鼠标 `/am`：持续左键长按（挖掘） | 空 |
+| `autoMouseLeftClickInterval` | 左键点击间隔（秒，0.05 ~ 1000） | `0.20` |
+| `autoMouseRightClickInterval` | 右键点击间隔（秒，0.05 ~ 1000） | `0.20` |
 
-支持的键名：`A`~`Z`、`0`~`9`、`F1`~`F12`、`Space`、`Tab`、`Enter`、`Shift`、`Ctrl`、`Alt` 及左右变体（`LShift`/`RShift` 等）。
+支持的键名：`A`~`Z`、`0`~`9`、`F1`~`F12`、`Space`、`Tab`、`Enter`、`Shift`、`Ctrl`、`Alt` 及左右变体（`LShift`/`RShift`、`LCtrl`/`RCtrl`、`LAlt`/`RAlt`）。
+
+配置文件支持 `//` 注释，并且**支持局内热重载**：在游戏里（已进入世界）改完保存，约 2 秒后自动生效，聊天栏会给出提示。间隔超出范围会自动夹紧；文件写坏时忽略本次修改（保留原配置）。
 
 ## 安装
 
 1. 安装 [LeviLauncher](https://github.com/LiteLDev/LeviLauncher) 启动器
-2. 在 LeviLauncher 中安装 LeviLamina 客户端
-3. 将 `Stipuleroo-windows.zip` 导入 LeviLauncher 启动器
+2. 在 LeviLauncher 中安装 **LeviLamina 26.40.\*** 客户端（游戏 26.40）
+3. 下载 `Stipuleroo-Windows-v0.0.4-26.40.zip` 并从 [Releases 页面](https://github.com/FeixiangTMC/Stipuleroo/releases) 导入 LeviLauncher
 4. 启动游戏，在聊天栏输入命令以启用功能
-5. 初次启动后会生成配置文件mod/Stipuleroo/config/config.json，在里面配置你的快捷键
+5. 初次启动后会生成配置文件 `mods/Stipuleroo/config/config.json`，在里面配置你的快捷键
+
+## 从源码构建
+
+需要 [xmake](https://xmake.io) 与 **clang-cl**（LLVM）。26.40 客户端由 clang/LLVM 构建，模组也**必须**用 `clang-cl` 编译 —— 用 MSVC 编译会得到不同的 `entt` 组件类型哈希，导致所有基于 ECS 的功能静默失效。
+
+```powershell
+.\build.ps1                            # release 构建（自动把 LLVM 的 bin 加进 PATH，然后配置 + 编译）
+.\build.ps1 -Mode debug -Clean         # debug 构建（先清理）
+.\deploy.ps1 -Version 1.26.40.05       # 把产物拷进 LeviLauncher 的对应版本
+```
+
+产物：`bin/Stipuleroo/{manifest.json, Stipuleroo.dll}`。
 
 ## 许可证
 
