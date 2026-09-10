@@ -4,23 +4,9 @@
 
 托叶工具，Minecraft 基岩版客户端多功能模组。纯客户端工作，可进入任意服务器使用。
 
-## 版本与下载
-
-模组会持续更新，**每个 release 只针对一个具体的游戏版本构建**，适配的游戏版本写在发布资源的文件名里：
-
-```
-Stipuleroo-Windows-v<模组版本>-<游戏版本>.zip
-         例：Stipuleroo-Windows-v0.0.4-26.40.zip   ← 适用于 Minecraft 26.40
-```
-
-- 到 [Releases 页面](https://github.com/FeixiangTMC/Stipuleroo/releases) 下载**游戏版本与你一致**的那个资源；旧版本会一直保留，方便还在老游戏版本上的玩家使用。
-- 最新 release 功能最新，但它**不能**用在更老的游戏版本上（反过来，旧 release 也未必能用在更新的游戏版本上）。游戏刚更新时，请等匹配的新 release。
-- 每个版本改了什么见 [CHANGELOG.md](CHANGELOG.md)。
-- 每个 release 都需要**同一游戏版本**的 [LeviLamina](https://github.com/LiteLDev/LeviLamina) 客户端（例如 Minecraft 26.40 对应 LeviLamina `26.40.*`）。
-
 ## 功能
 
-所有功能均支持**命令**和**快捷键**两种开关方式。快捷键默认全部为空，需要在配置文件中自行设置。
+所有功能均支持**命令**和**快捷键**两种开关方式。快捷键默认全部为空，需要在配置文件config.json中自行设置。
 
 ### 灵魂出窍 `/fc`
 
@@ -75,7 +61,7 @@ Stipuleroo-Windows-v<模组版本>-<游戏版本>.zip
 
 ### 自动鼠标操作 `/am`
 
-`/am` 会弹出模式菜单；三种模式各自也可以绑定快捷键。**三种模式互斥**：开启一个会自动关掉上一个，再选一次当前项即关闭。
+`/am` 会弹出模式菜单；三种模式各自也可以绑定快捷键。：开启一个会自动关掉上一个，再选一次当前项即关闭。
 
 | 提示 | 含义 |
 |---|---|
@@ -84,9 +70,9 @@ Stipuleroo-Windows-v<模组版本>-<游戏版本>.zip
 | `自动鼠标操作: 持续左键长按（挖掘）` | 持续挖掘准星方块 |
 | `自动鼠标操作: 已关闭` | 已关闭 |
 
-- **连续左键点击**：攻击准星目标；对着空气时空挥手臂
-- **连续右键点击**：按间隔对目标方块放置方块 / 使用物品（放置走服务端权威的 `GameMode::buildBlock`，方块会真正落地）
-- **持续左键长按（挖掘）**：在输入层伪造「鼠标左键按住」，让原版挖掘管线原样跑完 —— 破坏进度、裂纹贴图、音效、发包都与真人按住左键完全一致
+- **连续左键点击**
+- **连续右键点击**
+- **持续左键长按（挖掘）**
 - 点击间隔可在配置文件中调整（0.05 ~ 1000 秒）
 - 打开任何界面（背包 / 聊天 / 表单）时自动暂停，并立刻松开鼠标按键
 - 退出世界、死亡时自动关闭
@@ -135,7 +121,7 @@ Stipuleroo-Windows-v<模组版本>-<游戏版本>.zip
 
 1. 安装 [LeviLauncher](https://github.com/LiteLDev/LeviLauncher) 启动器
 2. 在 LeviLauncher 中安装与你的游戏版本匹配的 **LeviLamina 客户端**
-3. 从 [Releases 页面](https://github.com/FeixiangTMC/Stipuleroo/releases) 下载**游戏版本与你一致**的 zip（见上面「版本与下载」），并导入 LeviLauncher
+3. 从 [Releases 页面](https://github.com/FeixiangTMC/Stipuleroo/releases) 下载**游戏版本与你一致**的 zip，并导入 LeviLauncher
 4. 启动游戏，在聊天栏输入命令以启用功能
 5. 初次启动后会生成配置文件 `mods/Stipuleroo/config/config.json`，在里面配置你的快捷键
 
