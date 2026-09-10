@@ -4,11 +4,19 @@
 
 托叶工具，Minecraft 基岩版客户端多功能模组。纯客户端工作，可进入任意服务器使用。
 
-| | |
-|---|---|
-| 游戏版本 | Minecraft 基岩版 **26.40**（Windows） |
-| 加载器 | [LeviLamina](https://github.com/LiteLDev/LeviLamina) **26.40.\***（client） |
-| 下载 | [Releases](https://github.com/FeixiangTMC/Stipuleroo/releases) |
+## 版本与下载
+
+模组会持续更新，**每个 release 只针对一个具体的游戏版本构建**，适配的游戏版本写在发布资源的文件名里：
+
+```
+Stipuleroo-Windows-v<模组版本>-<游戏版本>.zip
+         例：Stipuleroo-Windows-v0.0.4-26.40.zip   ← 适用于 Minecraft 26.40
+```
+
+- 到 [Releases 页面](https://github.com/FeixiangTMC/Stipuleroo/releases) 下载**游戏版本与你一致**的那个资源；旧版本会一直保留，方便还在老游戏版本上的玩家使用。
+- 最新 release 功能最新，但它**不能**用在更老的游戏版本上（反过来，旧 release 也未必能用在更新的游戏版本上）。游戏刚更新时，请等匹配的新 release。
+- 每个版本改了什么见 [CHANGELOG.md](CHANGELOG.md)。
+- 每个 release 都需要**同一游戏版本**的 [LeviLamina](https://github.com/LiteLDev/LeviLamina) 客户端（例如 Minecraft 26.40 对应 LeviLamina `26.40.*`）。
 
 ## 功能
 
@@ -126,14 +134,14 @@
 ## 安装
 
 1. 安装 [LeviLauncher](https://github.com/LiteLDev/LeviLauncher) 启动器
-2. 在 LeviLauncher 中安装 **LeviLamina 26.40.\*** 客户端（游戏 26.40）
-3. 下载 `Stipuleroo-Windows-v0.0.4-26.40.zip` 并从 [Releases 页面](https://github.com/FeixiangTMC/Stipuleroo/releases) 导入 LeviLauncher
+2. 在 LeviLauncher 中安装与你的游戏版本匹配的 **LeviLamina 客户端**
+3. 从 [Releases 页面](https://github.com/FeixiangTMC/Stipuleroo/releases) 下载**游戏版本与你一致**的 zip（见上面「版本与下载」），并导入 LeviLauncher
 4. 启动游戏，在聊天栏输入命令以启用功能
 5. 初次启动后会生成配置文件 `mods/Stipuleroo/config/config.json`，在里面配置你的快捷键
 
 ## 从源码构建
 
-需要 [xmake](https://xmake.io) 与 **clang-cl**（LLVM）。26.40 客户端由 clang/LLVM 构建，模组也**必须**用 `clang-cl` 编译 —— 用 MSVC 编译会得到不同的 `entt` 组件类型哈希，导致所有基于 ECS 的功能静默失效。
+需要 [xmake](https://xmake.io)，以及与目标客户端匹配的 **clang-cl**（LLVM）：从游戏 26.20 起，客户端与 LeviLamina 都由 clang/LLVM 构建，模组也**必须**用 `clang-cl` 编译 —— 用 MSVC 会得到不同的 `entt` 组件类型哈希，导致所有基于 ECS 的功能静默失效。
 
 ```powershell
 .\build.ps1                            # release 构建（自动把 LLVM 的 bin 加进 PATH，然后配置 + 编译）
@@ -141,7 +149,7 @@
 .\deploy.ps1 -Version 1.26.40.05       # 把产物拷进 LeviLauncher 的对应版本
 ```
 
-产物：`bin/Stipuleroo/{manifest.json, Stipuleroo.dll}`。
+模组当前适配的 LeviLamina 版本写在 `xmake.lua` 与 `tooth.json` 里（换游戏版本时两处一起改）。产物：`bin/Stipuleroo/{manifest.json, Stipuleroo.dll}`。
 
 ## 许可证
 

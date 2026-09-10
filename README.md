@@ -4,11 +4,19 @@ English | [中文](README.zh.md)
 
 **Stipuleroo** is a multi-purpose **client-side** mod for Minecraft Bedrock Edition. Everything runs purely on the client, so it can be used on any server.
 
-| | |
-|---|---|
-| Game | Minecraft Bedrock Edition **26.40** (Windows) |
-| Loader | [LeviLamina](https://github.com/LiteLDev/LeviLamina) **26.40.\*** (client) |
-| Download | [Releases](https://github.com/FeixiangTMC/Stipuleroo/releases) |
+## Versions & downloads
+
+Stipuleroo keeps being updated, and **each release is built for one specific game version**. The supported game version is written into the release file name:
+
+```
+Stipuleroo-Windows-v<mod version>-<game version>.zip
+         e.g.  Stipuleroo-Windows-v0.0.4-26.40.zip   ← for Minecraft 26.40
+```
+
+- Grab the asset from the [Releases page](https://github.com/FeixiangTMC/Stipuleroo/releases) whose **game version matches yours** — old releases are kept, so people on older game versions can still download them.
+- The newest release contains the newest features, but it will **not** work on older game versions (and an older release may not work on a newer game). If your game just updated, wait for a release matching it.
+- What changed in each release: [CHANGELOG.md](CHANGELOG.md).
+- Each release needs a matching **[LeviLamina](https://github.com/LiteLDev/LeviLamina) client** for that same game version (e.g. LeviLamina `26.40.*` for Minecraft 26.40).
 
 ## Features
 
@@ -128,14 +136,14 @@ The file supports `//` comments and is **hot-reloaded**: save it while the game 
 ## Installation
 
 1. Install the [LeviLauncher](https://github.com/LiteLDev/LeviLauncher) launcher
-2. Install a **LeviLamina 26.40.\*** client (Minecraft Bedrock 26.40) through LeviLauncher
-3. Download `Stipuleroo-Windows-v0.0.4-26.40.zip` from the [Releases page](https://github.com/FeixiangTMC/Stipuleroo/releases) and import it into LeviLauncher
+2. Install a **LeviLamina client** matching your game version through LeviLauncher
+3. Download the release zip whose game version matches yours (see [Versions & downloads](#versions--downloads)) from the [Releases page](https://github.com/FeixiangTMC/Stipuleroo/releases) and import it into LeviLauncher
 4. Launch the game and type the commands in chat to enable features
 5. On first launch, a config file is generated at `mods/Stipuleroo/config/config.json` — configure your hotkeys there
 
 ## Building from source
 
-Requirements: [xmake](https://xmake.io) and **clang-cl** (LLVM). 26.40 clients are built with clang/LLVM, so the mod must be compiled with `clang-cl` too — building with MSVC produces a different `entt` component type hash and silently breaks every ECS-based feature.
+Requirements: [xmake](https://xmake.io), and a **clang-cl** (LLVM) matching the client you build against — from game version 26.20 on, the client and LeviLamina are built with clang/LLVM, so the mod must be compiled with `clang-cl` too. Building with MSVC produces a different `entt` component type hash and silently breaks every ECS-based feature.
 
 ```powershell
 .\build.ps1                            # release build (puts LLVM's bin on PATH, then configures + builds)
@@ -143,7 +151,7 @@ Requirements: [xmake](https://xmake.io) and **clang-cl** (LLVM). 26.40 clients a
 .\deploy.ps1 -Version 1.26.40.05       # copy the build output into a LeviLauncher version
 ```
 
-Output: `bin/Stipuleroo/{manifest.json, Stipuleroo.dll}`.
+`xmake.lua` and `tooth.json` declare the LeviLamina version the mod is built against (keep them in sync when targeting a new game version). Output: `bin/Stipuleroo/{manifest.json, Stipuleroo.dll}`.
 
 ## License
 
